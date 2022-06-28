@@ -12580,7 +12580,7 @@ const main = async () => {
             properties.set(key, value);
         }
     
-        const props = propertiesReader(propertyPath, {writer: { saveSections: true }});
+        const props = propertiesReader(propertyPath, {writer: { saveSections: false }});
         await props.save(propertyPath);
       });
 
