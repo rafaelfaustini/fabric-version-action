@@ -2,6 +2,7 @@ const core = require('@actions/core');
 const { default: axios } = require('axios');
 const https = require('https');
 const parseString = require('xml2js').parseString;
+const propertiesReader = require('properties-reader');
 
 function isGameVersionTarget({gameVersion}, targetGameVersion){
     return gameVersion == targetGameVersion;
