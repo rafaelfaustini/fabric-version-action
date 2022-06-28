@@ -12,7 +12,7 @@ function isGameVersionTarget({gameVersion}, targetGameVersion){
 }
 
 function filterYarnData(versionsData, targetGameVersion) {
-    core.info(version.data)
+    core.info(versionsData)
     core.info(targetGameVersion)
     return versionsData.filter(
         version => {
