@@ -3,10 +3,6 @@ const { default: axios } = require('axios');
 const https = require('https');
 const parseString = require('xml2js').parseString;
 
-function isVersionStable({stable}){
-    return stable
-}
-
 function isGameVersionTarget({gameVersion}, targetGameVersion){
     return gameVersion == targetGameVersion;
 }
@@ -15,7 +11,7 @@ function filterYarnData(versionsData, targetGameVersion) {
     core.info(targetGameVersion)
     return versionsData.filter(
         version => {
-            return isVersionStable(version) && isGameVersionTarget(version, targetGameVersion)
+            return isGameVersionTarget(version, targetGameVersion)
         }
     )
 }
