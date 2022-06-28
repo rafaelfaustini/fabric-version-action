@@ -11741,7 +11741,7 @@ const main = async () => {
     const loaderData = await axios.get("https://meta.fabricmc.net/v2/versions/loader").data;
     let fabricVersionData = await axios.get("https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml");
     parseString(fabricVersionData.data , async function (err, fabricVersionsData) {
-        const fabricVersions = fabricVersionsData.metadata.versioning[0].versions.version;
+        const fabricVersions = fabricVersionsData.metadata.versioning[0].versions[0].version;
         const targetMinecraftVersion = core.getInput('minecraft_version', { required: true });
         const fabricVersion = getFabricVersionByTarget(targetMinecraftVersion, fabricVersions)
         yarnData = getLatestBuild(filterYarnData(yarnData, targetMinecraftVersion));
