@@ -9,7 +9,6 @@ function isGameVersionTarget({gameVersion}, targetGameVersion){
 }
 
 function filterYarnData(versionsData, targetGameVersion) {
-    core.info(targetGameVersion)
     return versionsData.filter(
         version => {
             return isGameVersionTarget(version, targetGameVersion)
@@ -44,6 +43,13 @@ const main = async () => {
             loader_version: latestLoader.version,
             fabric_version: fabricVersion
         }
+
+        core.info(`minecraft_version: ${gradleConfigModel.minecraft_version}`)
+        core.info(`yarn_mappings: ${gradleConfigModel.yarn_mappings}`)
+        core.info(`loader_version: ${gradleConfigModel.loader_version}`)
+        core.info(`fabric_version: ${gradleConfigModel.fabric_version}`)
+
+
     
         const propertyPath = 'gradle.properties';
     
@@ -55,7 +61,7 @@ const main = async () => {
         }
     
         const props = propertiesReader(propertyPath, {writer: { saveSections: true }});
-        await props.save(filePath);
+        await props.save(propertyPath);
       });
 
 
