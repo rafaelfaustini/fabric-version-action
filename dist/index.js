@@ -11710,10 +11710,6 @@ const { default: axios } = __nccwpck_require__(1343);
 const https = __nccwpck_require__(5687);
 const parseString = (__nccwpck_require__(8871).parseString);
 
-function isVersionStable({stable}){
-    return stable
-}
-
 function isGameVersionTarget({gameVersion}, targetGameVersion){
     return gameVersion == targetGameVersion;
 }
@@ -11722,7 +11718,7 @@ function filterYarnData(versionsData, targetGameVersion) {
     core.info(targetGameVersion)
     return versionsData.filter(
         version => {
-            return isVersionStable(version) && isGameVersionTarget(version, targetGameVersion)
+            return isGameVersionTarget(version, targetGameVersion)
         }
     )
 }
