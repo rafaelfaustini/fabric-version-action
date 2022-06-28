@@ -30,9 +30,9 @@ function getLatestBuild(data){
 
 const main = async () => {
   try {
-    const yarnData = await axios.get("https://meta.fabricmc.net/v2/versions/yarn").data;
+    let yarnData = await axios.get("https://meta.fabricmc.net/v2/versions/yarn").data;
     const loaderData = await axios.get("https://meta.fabricmc.net/v2/versions/loader").data;
-    const fabricVersionData = await axios.get("https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml");
+    let fabricVersionData = await axios.get("https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml");
     fabricVersionData = await parseString(fabricVersionData.data);
     const fabricVersions = fabricVersionData.metadata.versioning.versions.version;
     const targetMinecraftVersion = core.getInput('minecraft_version', { required: true });
@@ -49,7 +49,7 @@ const main = async () => {
 
     const propertyPath = 'gradle.properties';
 
-    var properties = propertiesReader(propertyPath);
+    let properties = propertiesReader(propertyPath);
     
     
     for (var [key, value] of Object.entries(properties)) {
