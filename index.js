@@ -33,33 +33,31 @@ const main = async () => {
     let yarnData = await axios.get("https://meta.fabricmc.net/v2/versions/yarn").data;
     const loaderData = await axios.get("https://meta.fabricmc.net/v2/versions/loader").data;
     let fabricVersionData = await axios.get("https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml");
-    parseString(fabricVersionData.data , function (err, fabricVersionsData) {
-        const fabricVersions = fabricVersionsData.metadata.versioning.versions.version;
-        const targetMinecraftVersion = core.getInput('minecraft_version', { required: true });
-        const fabricVersion = getFabricVersionByTarget(targetMinecraftVersion, fabricVersions)
-        yarnData = getLatestBuild(filterYarnData(yarnData, targetMinecraftVersion));
-        const latestLoader = getLatestBuild(loaderData);
-    
-        gradleConfigModel = {
-            minecraft_version: yarnData.gameVersion,
-            yarn_mappings: yarnData.version,
-            loader_version: latestLoader.version,
-            fabric_version: fabricVersion
-        }
-    
-        const propertyPath = 'gradle.properties';
-    
-        let properties = propertiesReader(propertyPath);
-        
-        
-        for (var [key, value] of Object.entries(properties)) {
-            properties.set(key, value);
-        }
-    
-        const props = propertiesReader(propertyPath, {writer: { saveSections: true }});
-        await props.save(filePath);
-      });
+    fabricVersionData = await parseString(fabricVersionData.data);
+    const fabricVersions = fabricVersionData.metadata.versioning[0].versions.version;
+    const targetMinecraftVersion = core.getInput('minecraft_version', { required: true });
+    const fabricVersion = getFabricVersionByTarget(targetMinecraftVersion, fabricVersions)
+    yarnData = getLatestBuild(filterYarnData(yarnData, targetMinecraftVersion));
+    const latestLoader = getLatestBuild(loaderData);
 
+    gradleConfigModel = {
+        minecraft_version: yarnData.gameVersion,
+        yarn_mappings: yarnData.version,
+        loader_version: latestLoader.version,
+        fabric_version: fabricVersion
+    }
+
+    const propertyPath = 'gradle.properties';
+
+    let properties = propertiesReader(propertyPath);
+    
+    
+    for (var [key, value] of Object.entries(properties)) {
+        properties.set(key, value);
+    }
+
+    const props = propertiesReader(propertyPath, {writer: { saveSections: true }});
+    await props.save(filePath);
 
 
   } catch (error) {
