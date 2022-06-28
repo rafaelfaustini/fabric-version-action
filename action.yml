@@ -1,0 +1,9 @@
+name: 'Fabric Version Action'
+description: 'Not official action that changes the fabric version in gradle config for the desired minecraft version'
+inputs:
+  minecraft_version:
+    description: 'The target minecraft version that will be present in gradle.config'
+    required: true
+runs:
+  using: 'node16'
+  main: 'index.js'
