@@ -4673,815 +4673,237 @@ module.exports.wrap = wrap;
 
 /***/ }),
 
-/***/ 8563:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const optsArg = __nccwpck_require__(1305)
-const pathArg = __nccwpck_require__(5239)
-
-const {mkdirpNative, mkdirpNativeSync} = __nccwpck_require__(700)
-const {mkdirpManual, mkdirpManualSync} = __nccwpck_require__(5541)
-const {useNative, useNativeSync} = __nccwpck_require__(8247)
-
-
-const mkdirp = (path, opts) => {
-  path = pathArg(path)
-  opts = optsArg(opts)
-  return useNative(opts)
-    ? mkdirpNative(path, opts)
-    : mkdirpManual(path, opts)
-}
-
-const mkdirpSync = (path, opts) => {
-  path = pathArg(path)
-  opts = optsArg(opts)
-  return useNativeSync(opts)
-    ? mkdirpNativeSync(path, opts)
-    : mkdirpManualSync(path, opts)
-}
-
-mkdirp.sync = mkdirpSync
-mkdirp.native = (path, opts) => mkdirpNative(pathArg(path), optsArg(opts))
-mkdirp.manual = (path, opts) => mkdirpManual(pathArg(path), optsArg(opts))
-mkdirp.nativeSync = (path, opts) => mkdirpNativeSync(pathArg(path), optsArg(opts))
-mkdirp.manualSync = (path, opts) => mkdirpManualSync(pathArg(path), optsArg(opts))
-
-module.exports = mkdirp
-
-
-/***/ }),
-
-/***/ 9533:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const {dirname} = __nccwpck_require__(1017)
-
-const findMade = (opts, parent, path = undefined) => {
-  // we never want the 'made' return value to be a root directory
-  if (path === parent)
-    return Promise.resolve()
-
-  return opts.statAsync(parent).then(
-    st => st.isDirectory() ? path : undefined, // will fail later
-    er => er.code === 'ENOENT'
-      ? findMade(opts, dirname(parent), parent)
-      : undefined
-  )
-}
-
-const findMadeSync = (opts, parent, path = undefined) => {
-  if (path === parent)
-    return undefined
-
-  try {
-    return opts.statSync(parent).isDirectory() ? path : undefined
-  } catch (er) {
-    return er.code === 'ENOENT'
-      ? findMadeSync(opts, dirname(parent), parent)
-      : undefined
-  }
-}
-
-module.exports = {findMade, findMadeSync}
-
-
-/***/ }),
-
-/***/ 5541:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const {dirname} = __nccwpck_require__(1017)
-
-const mkdirpManual = (path, opts, made) => {
-  opts.recursive = false
-  const parent = dirname(path)
-  if (parent === path) {
-    return opts.mkdirAsync(path, opts).catch(er => {
-      // swallowed by recursive implementation on posix systems
-      // any other error is a failure
-      if (er.code !== 'EISDIR')
-        throw er
-    })
-  }
-
-  return opts.mkdirAsync(path, opts).then(() => made || path, er => {
-    if (er.code === 'ENOENT')
-      return mkdirpManual(parent, opts)
-        .then(made => mkdirpManual(path, opts, made))
-    if (er.code !== 'EEXIST' && er.code !== 'EROFS')
-      throw er
-    return opts.statAsync(path).then(st => {
-      if (st.isDirectory())
-        return made
-      else
-        throw er
-    }, () => { throw er })
-  })
-}
-
-const mkdirpManualSync = (path, opts, made) => {
-  const parent = dirname(path)
-  opts.recursive = false
-
-  if (parent === path) {
-    try {
-      return opts.mkdirSync(path, opts)
-    } catch (er) {
-      // swallowed by recursive implementation on posix systems
-      // any other error is a failure
-      if (er.code !== 'EISDIR')
-        throw er
-      else
-        return
-    }
-  }
-
-  try {
-    opts.mkdirSync(path, opts)
-    return made || path
-  } catch (er) {
-    if (er.code === 'ENOENT')
-      return mkdirpManualSync(path, opts, mkdirpManualSync(parent, opts, made))
-    if (er.code !== 'EEXIST' && er.code !== 'EROFS')
-      throw er
-    try {
-      if (!opts.statSync(path).isDirectory())
-        throw er
-    } catch (_) {
-      throw er
-    }
-  }
-}
-
-module.exports = {mkdirpManual, mkdirpManualSync}
-
-
-/***/ }),
-
-/***/ 700:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const {dirname} = __nccwpck_require__(1017)
-const {findMade, findMadeSync} = __nccwpck_require__(9533)
-const {mkdirpManual, mkdirpManualSync} = __nccwpck_require__(5541)
-
-const mkdirpNative = (path, opts) => {
-  opts.recursive = true
-  const parent = dirname(path)
-  if (parent === path)
-    return opts.mkdirAsync(path, opts)
-
-  return findMade(opts, path).then(made =>
-    opts.mkdirAsync(path, opts).then(() => made)
-    .catch(er => {
-      if (er.code === 'ENOENT')
-        return mkdirpManual(path, opts)
-      else
-        throw er
-    }))
-}
-
-const mkdirpNativeSync = (path, opts) => {
-  opts.recursive = true
-  const parent = dirname(path)
-  if (parent === path)
-    return opts.mkdirSync(path, opts)
-
-  const made = findMadeSync(opts, path)
-  try {
-    opts.mkdirSync(path, opts)
-    return made
-  } catch (er) {
-    if (er.code === 'ENOENT')
-      return mkdirpManualSync(path, opts)
-    else
-      throw er
-  }
-}
-
-module.exports = {mkdirpNative, mkdirpNativeSync}
-
-
-/***/ }),
-
-/***/ 1305:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const { promisify } = __nccwpck_require__(3837)
-const fs = __nccwpck_require__(7147)
-const optsArg = opts => {
-  if (!opts)
-    opts = { mode: 0o777, fs }
-  else if (typeof opts === 'object')
-    opts = { mode: 0o777, fs, ...opts }
-  else if (typeof opts === 'number')
-    opts = { mode: opts, fs }
-  else if (typeof opts === 'string')
-    opts = { mode: parseInt(opts, 8), fs }
-  else
-    throw new TypeError('invalid options argument')
-
-  opts.mkdir = opts.mkdir || opts.fs.mkdir || fs.mkdir
-  opts.mkdirAsync = promisify(opts.mkdir)
-  opts.stat = opts.stat || opts.fs.stat || fs.stat
-  opts.statAsync = promisify(opts.stat)
-  opts.statSync = opts.statSync || opts.fs.statSync || fs.statSync
-  opts.mkdirSync = opts.mkdirSync || opts.fs.mkdirSync || fs.mkdirSync
-  return opts
-}
-module.exports = optsArg
-
-
-/***/ }),
-
-/***/ 5239:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const platform = process.env.__TESTING_MKDIRP_PLATFORM__ || process.platform
-const { resolve, parse } = __nccwpck_require__(1017)
-const pathArg = path => {
-  if (/\0/.test(path)) {
-    // simulate same failure that node raises
-    throw Object.assign(
-      new TypeError('path must be a string without null bytes'),
-      {
-        path,
-        code: 'ERR_INVALID_ARG_VALUE',
-      }
-    )
-  }
-
-  path = resolve(path)
-  if (platform === 'win32') {
-    const badWinChars = /[*|"<>?:]/
-    const {root} = parse(path)
-    if (badWinChars.test(path.substr(root.length))) {
-      throw Object.assign(new Error('Illegal characters in path.'), {
-        path,
-        code: 'EINVAL',
-      })
-    }
-  }
-
-  return path
-}
-module.exports = pathArg
-
-
-/***/ }),
-
-/***/ 8247:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const fs = __nccwpck_require__(7147)
-
-const version = process.env.__TESTING_MKDIRP_NODE_VERSION__ || process.version
-const versArr = version.replace(/^v/, '').split('.')
-const hasNative = +versArr[0] > 10 || +versArr[0] === 10 && +versArr[1] >= 12
-
-const useNative = !hasNative ? () => false : opts => opts.mkdir === fs.mkdir
-const useNativeSync = !hasNative ? () => false : opts => opts.mkdirSync === fs.mkdirSync
-
-module.exports = {useNative, useNativeSync}
-
-
-/***/ }),
-
-/***/ 8756:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-
-const PropertiesReader = __nccwpck_require__(5724);
-
-module.exports = function propertiesReaderFactory (sourceFile, encoding, options) {
-
-   return new PropertiesReader(sourceFile, encoding, options);
-
-};
-
-
-
-/***/ }),
-
-/***/ 5724:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const {readFileSync, statSync} = __nccwpck_require__(7147);
-const propertyAppender = (__nccwpck_require__(8512).propertyAppender);
-const propertyWriter = (__nccwpck_require__(1235)/* .propertyWriter */ .L);
-
-const has = Object.prototype.hasOwnProperty.call.bind(Object.prototype.hasOwnProperty);
-
-const SECTION = Symbol('SECTION');
-
-function PropertiesReader (sourceFile, encoding, options = {}) {
-   this._encoding = typeof encoding === 'string' && encoding || 'utf-8';
-   this._properties = {};
-   this._propertiesExpanded = {};
-
-   this.appender(options.appender || options);
-   this.writer(options.writer || options);
-   this.append(sourceFile, encoding);
-}
-
-/**
- * @type {String} The name of a section that should be prefixed on an property as it is added
- * @ignore
- */
-PropertiesReader.prototype[SECTION] = '';
-
-/**
- * Gets the number of properties that have been read into this PropertiesReader.
- *
- * @name PropertiesReader#length
- * @type {Number}
- */
-Object.defineProperty(PropertiesReader.prototype, 'length', {
-   configurable: false,
-   enumerable: false,
-   get () {
-      return Object.keys(this._properties).length;
-   }
-});
-
-/**
- * Define the property appending mechanism to be used by the instance.
- *
- * By default, duplicate sections will be collapsed when saving the properties. To disable this
- * feature, set the `allowDuplicateSections` appender configuration to `true`:
- *
- * ```
-const properties = propertiesReader('file.ini', 'utf-8', { allowDuplicateSections: true });
-const properties = propertiesReader('file.ini').appender({ allowDuplicateSections: true });
-```
- *
- * @param appender
- * @returns {PropertiesReader}
- */
-PropertiesReader.prototype.appender = function (appender) {
-   if (typeof appender === 'function') {
-      this._propertyAppender = appender;
-   }
-   else if (typeof appender === 'object') {
-      this._propertyAppender = propertyAppender(appender);
-   }
-
-   return this;
-};
-
-/**
- * Define the property appending mechanism to be used by the instance.
- *
- * By default, duplicate sections will be collapsed when saving the properties. To disable this
- * feature, set the `allowDuplicateSections` appender configuration to `true`:
- *
- * ```
-const properties = propertiesReader('file.ini', 'utf-8', { allowDuplicateSections: true });
-const properties = propertiesReader('file.ini').appender({ allowDuplicateSections: true });
-```
- *
- * @param writer
- * @returns {PropertiesReader}
- */
-PropertiesReader.prototype.writer = function (writer) {
-   if (typeof writer === 'function') {
-      this._propertyWriter = writer;
-   }
-   else if (typeof writer === 'object') {
-      this._propertyWriter = propertyWriter(writer);
-   }
-
-   return this;
-};
-
-/**
- * Append a file to the properties into the PropertiesReader
- *
- * @param {string} sourceFile
- * @param {string} [encoding='utf-8']
- *
- * @return {PropertiesReader} this instance
- */
-PropertiesReader.prototype.append = function (sourceFile, encoding) {
-
-   if (sourceFile) {
-      this.read(readFileSync(sourceFile, typeof encoding === 'string' && encoding || this._encoding));
-   }
-
-   return this;
-};
-
-/**
- * Reads any string input into the PropertiesReader
- *
- * @param {String} input
- * @return {PropertiesReader} this instance
- */
-PropertiesReader.prototype.read = function (input) {
-   delete this[SECTION];
-   ('' + input).split('\n').forEach(this._readLine, this);
-   return this;
-};
-
-/**
- * Used as a processor for the array of input lines when reading from a source file
- * @param {String} propertyString
- */
-PropertiesReader.prototype._readLine = function (propertyString) {
-   if (!!(propertyString = propertyString.trim())) {
-      var section = /^\[([^=]+)]$/.exec(propertyString);
-      var property = !section && /^([^#=]+)(={0,1})(.*)$/.exec(propertyString);
-
-      if (section) {
-         this[SECTION] = section[1];
-      }
-      else if (property) {
-         section = this[SECTION] ? this[SECTION] + '.' : '';
-         this.set(section + property[1].trim(), property[3].trim());
-      }
-   }
-};
-
-/**
- * Calls the supplied function for each property
- *
- * @param {Function} fn
- * @param {Object} scope
- * @return {PropertiesReader}
- */
-PropertiesReader.prototype.each = function (fn, scope) {
-   for (var key in this._properties) {
-      if (this._properties.hasOwnProperty(key)) {
-         fn.call(scope || this, key, this._properties[key]);
-      }
-   }
-   return this;
-};
-
-/**
- * Given the supplied raw value, returns the parsed value
- */
-PropertiesReader.prototype._parsed = function (value) {
-
-   if (value !== null && value !== '' && !isNaN(value)) {
-      return +value;
-   }
-
-   if (value === 'true' || value === 'false') {
-      return value === 'true';
-   }
-
-   if (typeof value === "string") {
-      var replacements = {'\\n': '\n', '\\r': '\r', '\\t': '\t'};
-      return value.replace(/\\[nrt]/g, function (key) {
-         return replacements[key];
-      });
-   }
-
-   return value;
-};
-
-/**
- * Gets a single property value based on the full string key. When the property is not found in the
- * PropertiesReader, the return value will be null.
- *
- * @param {String} key
- * @return {*}
- */
-PropertiesReader.prototype.get = function (key) {
-   return this._parsed(this.getRaw(key));
-};
-
-/**
- * Gets the string representation as it was read from the properties file without coercions for type recognition.
- *
- * @param {string} key
- * @returns {string}
- */
-PropertiesReader.prototype.getRaw = function (key) {
-   return this._properties.hasOwnProperty(key) ? this._properties[key] : null;
-};
-
-/**
- * Sets the supplied key in the properties store with the supplied value, the value can be any string representation
- * that would be valid in a properties file (eg: true and false or numbers are converted to their real values).
- *
- * @param {String} key
- * @param {String} value
- * @return {PropertiesReader}
- */
-PropertiesReader.prototype.set = function (key, value) {
-   var parsedValue = ('' + value).trim();
-
-   this._properties = this._propertyAppender(this._properties, key, parsedValue);
-
-   var expanded = key.split('.');
-   var source = this._propertiesExpanded;
-
-   while (expanded.length > 1) {
-      var step = expanded.shift();
-      if (expanded.length >= 1 && typeof source[step] === 'string') {
-         source[step] = {'': source[step]};
-      }
-
-      if (!has(source, step)) {
-         Object.defineProperty(source, step, { value: {} });
-      }
-
-      source = source[step]
-   }
-
-   if (typeof parsedValue === 'string' && typeof  source[expanded[0]] === 'object') {
-      source[expanded[0]][''] = parsedValue;
-   }
-   else {
-      source[expanded[0]] = parsedValue;
-   }
-
-   return this;
-};
-
-/**
- * Gets the object that represents the exploded properties.
- *
- * Note that this object is currently mutable without the option to persist or interrogate changes.
- *
- * @return {*}
- */
-PropertiesReader.prototype.path = function () {
-   return this._propertiesExpanded;
-};
-
-/**
- * Gets the object that represents all properties.
- *
- * @returns {Object}
- */
-PropertiesReader.prototype.getAllProperties = function () {
-   var properties = {};
-   this.each(function (key, value) {
-      properties[key] = value;
-   });
-   return properties;
-};
-
-/**
- * Creates and returns a new PropertiesReader based on the values in this instance.
- * @return {PropertiesReader}
- */
-PropertiesReader.prototype.clone = function () {
-   var propertiesReader = new PropertiesReader(null);
-   this.each(propertiesReader.set, propertiesReader);
-
-   return propertiesReader;
-};
-
-/**
- * Return a json from a root properties
- * @param root
- * @returns {{}}
- */
-PropertiesReader.prototype.getByRoot = function (root) {
-   var keys = Object.keys(this._properties);
-   var outObj = {};
-
-   for (var i = 0, prefixLength = String(root).length; i < keys.length; i++) {
-      var key = keys[i];
-
-      if (key.indexOf(root) === 0 && key.charAt(prefixLength) === '.') {
-         outObj[key.substr(prefixLength + 1)] = this.get(key);
-      }
-   }
-
-   return outObj;
-};
-
-/**
- * Binds the current properties object and all values in it to the supplied express app.
- *
- * @param {Object} app The express app (or any object that has a `set` function)
- * @param {String} [basePath] The absolute prefix to use for all path properties - defaults to the cwd.
- * @param {Boolean} [makePaths=false] When true will attempt to create the directory structure to any path property
- */
-PropertiesReader.prototype.bindToExpress = function (app, basePath, makePaths) {
-   var Path = __nccwpck_require__(1017);
-
-   if (!/\/$/.test(basePath = basePath || process.cwd())) {
-      basePath += '/';
-   }
-
-   this.each(function (key, value) {
-      if (value && /\.(path|dir)$/.test(key)) {
-         value = Path.resolve(basePath, value);
-         this.set(key, value);
-
-         try {
-            var directoryPath = /dir$/.test(key) ? value : Path.dirname(value);
-            if (makePaths) {
-               (__nccwpck_require__(8563).sync)(directoryPath);
-            }
-            else if (!statSync(directoryPath).isDirectory()) {
-               throw new Error("Path is not a directory that already exists");
-            }
-         }
-         catch (e) {
-            throw new Error("Unable to create directory " + value);
-         }
-      }
-
-      app.set(key, this.get(key));
-
-      if (/^browser\./.test(key)) {
-         app.locals[key.substr(8)] = this.get(key);
-      }
-   }, this);
-
-   app.set('properties', this);
-
-   return this;
-};
-
-/**
- * Stringify properties
- *
- * @returns {string[]} array of stringified properties
- */
-
-
-/**
- * Write properties into the file
- *
- * @param {String} destFile
- * @param {Function} onComplete callback
- */
-PropertiesReader.prototype.save = function (destFile, onComplete) {
-   return this._propertyWriter(this, destFile, onComplete);
-};
-
-module.exports = PropertiesReader;
-
-
-/***/ }),
-
-/***/ 8512:
+/***/ 16:
 /***/ ((module) => {
 
-var defaultOptions = {
+const { hasOwnProperty } = Object.prototype
 
-   allowDuplicateSections: false,
+/* istanbul ignore next */
+const eol = typeof process !== 'undefined' &&
+  process.platform === 'win32' ? '\r\n' : '\n'
 
-};
+const encode = (obj, opt) => {
+  const children = []
+  let out = ''
 
-function simplePropertyAppender (properties, key, value) {
+  if (typeof opt === 'string') {
+    opt = {
+      section: opt,
+      whitespace: false,
+    }
+  } else {
+    opt = opt || Object.create(null)
+    opt.whitespace = opt.whitespace === true
+  }
 
-   properties[key] = value;
+  const separator = opt.whitespace ? ' = ' : '='
 
-   return properties;
+  for (const k of Object.keys(obj)) {
+    const val = obj[k]
+    if (val && Array.isArray(val)) {
+      for (const item of val) {
+        out += safe(k + '[]') + separator + safe(item) + eol
+      }
+    } else if (val && typeof val === 'object') {
+      children.push(k)
+    } else {
+      out += safe(k) + separator + safe(val) + eol
+    }
+  }
 
+  if (opt.section && out.length) {
+    out = '[' + safe(opt.section) + ']' + eol + out
+  }
+
+  for (const k of children) {
+    const nk = dotSplit(k).join('\\.')
+    const section = (opt.section ? opt.section + '.' : '') + nk
+    const { whitespace } = opt
+    const child = encode(obj[k], {
+      section,
+      whitespace,
+    })
+    if (out.length && child.length) {
+      out += eol
+    }
+
+    out += child
+  }
+
+  return out
 }
 
-function sectionCollapsePropertyAppender (properties, key, value) {
-   var output = {};
-   var section = sectionFromPropertyName(key);
-   var existingKeys = Object.keys(properties);
+const dotSplit = str =>
+  str.replace(/\1/g, '\u0002LITERAL\\1LITERAL\u0002')
+    .replace(/\\\./g, '\u0001')
+    .split(/\./)
+    .map(part =>
+      part.replace(/\1/g, '\\.')
+        .replace(/\2LITERAL\\1LITERAL\2/g, '\u0001'))
 
-   // no section in property name so just append it to the list
-   if (!section || !existingKeys.length) {
-      output[key] = value;
-      return Object.assign(properties, output);
-   }
+const decode = str => {
+  const out = Object.create(null)
+  let p = out
+  let section = null
+  //          section     |key      = value
+  const re = /^\[([^\]]*)\]$|^([^=]+)(=(.*))?$/i
+  const lines = str.split(/[\r\n]+/g)
 
-   // has a section in the property name so append it in that section
-   var BEFORE = 1, DURING = 2, AFTER = 4;
-   var processing = BEFORE;
-
-   existingKeys.forEach(function (processingKey) {
-
-      var during = processing !== AFTER && processingKey.indexOf(section + '.') === 0;
-
-      if (key === processingKey) {
-         properties[processingKey] = value;
-         processing = AFTER;
+  for (const line of lines) {
+    if (!line || line.match(/^\s*[;#]/)) {
+      continue
+    }
+    const match = line.match(re)
+    if (!match) {
+      continue
+    }
+    if (match[1] !== undefined) {
+      section = unsafe(match[1])
+      if (section === '__proto__') {
+        // not allowed
+        // keep parsing the section, but don't attach it.
+        p = Object.create(null)
+        continue
       }
-      else if (processing === BEFORE && during) {
-         // starts to be DURING
-         processing = DURING;
+      p = out[section] = out[section] || Object.create(null)
+      continue
+    }
+    const keyRaw = unsafe(match[2])
+    const isArray = keyRaw.length > 2 && keyRaw.slice(-2) === '[]'
+    const key = isArray ? keyRaw.slice(0, -2) : keyRaw
+    if (key === '__proto__') {
+      continue
+    }
+    const valueRaw = match[3] ? unsafe(match[4]) : true
+    const value = valueRaw === 'true' ||
+      valueRaw === 'false' ||
+      valueRaw === 'null' ? JSON.parse(valueRaw)
+      : valueRaw
+
+    // Convert keys with '[]' suffix to an array
+    if (isArray) {
+      if (!hasOwnProperty.call(p, key)) {
+        p[key] = []
+      } else if (!Array.isArray(p[key])) {
+        p[key] = [p[key]]
       }
-      else if (processing === DURING && !during) {
-         // is now after
-         output[key] = value;
-         processing = AFTER;
+    }
+
+    // safeguard against resetting a previously defined
+    // array by accidentally forgetting the brackets
+    if (Array.isArray(p[key])) {
+      p[key].push(value)
+    } else {
+      p[key] = value
+    }
+  }
+
+  // {a:{y:1},"a.b":{x:2}} --> {a:{y:1,b:{x:2}}}
+  // use a filter to return the keys that have to be deleted.
+  const remove = []
+  for (const k of Object.keys(out)) {
+    if (!hasOwnProperty.call(out, k) ||
+        typeof out[k] !== 'object' ||
+        Array.isArray(out[k])) {
+      continue
+    }
+
+    // see if the parent section is also an object.
+    // if so, add it to that, and mark this one for deletion
+    const parts = dotSplit(k)
+    p = out
+    const l = parts.pop()
+    const nl = l.replace(/\\\./g, '.')
+    for (const part of parts) {
+      if (part === '__proto__') {
+        continue
       }
+      if (!hasOwnProperty.call(p, part) || typeof p[part] !== 'object') {
+        p[part] = Object.create(null)
+      }
+      p = p[part]
+    }
+    if (p === out && nl === l) {
+      continue
+    }
 
-      output[processingKey] = properties[processingKey];
+    p[nl] = out[k]
+    remove.push(k)
+  }
+  for (const del of remove) {
+    delete out[del]
+  }
 
-   });
-
-   if (processing !== AFTER) {
-      output[key] = value;
-   }
-
-   return output;
-
+  return out
 }
 
-function sectionFromPropertyName (name) {
-   var index = String(name).indexOf('.');
-   return index > 0 && name.substr(0, index) || '';
+const isQuoted = val => {
+  return (val.startsWith('"') && val.endsWith('"')) ||
+    (val.startsWith("'") && val.endsWith("'"))
 }
 
+const safe = val => {
+  if (
+    typeof val !== 'string' ||
+    val.match(/[=\r\n]/) ||
+    val.match(/^\[/) ||
+    (val.length > 1 && isQuoted(val)) ||
+    val !== val.trim()
+  ) {
+    return JSON.stringify(val)
+  }
+  return val.split(';').join('\\;').split('#').join('\\#')
+}
 
-/**
- * Builder method used to create a property appending function configured to the user
- * requirements.
- */
-function propertyAppender (userOptions) {
+const unsafe = (val, doUnesc) => {
+  val = (val || '').trim()
+  if (isQuoted(val)) {
+    // remove the single quotes before calling JSON.parse
+    if (val.charAt(0) === "'") {
+      val = val.slice(1, -1)
+    }
+    try {
+      val = JSON.parse(val)
+    } catch (_) {}
+  } else {
+    // walk the val to find the first not-escaped ; character
+    let esc = false
+    let unesc = ''
+    for (let i = 0, l = val.length; i < l; i++) {
+      const c = val.charAt(i)
+      if (esc) {
+        if ('\\;#'.indexOf(c) !== -1) {
+          unesc += c
+        } else {
+          unesc += '\\' + c
+        }
 
-   var options = Object.assign({}, defaultOptions, userOptions || {});
+        esc = false
+      } else if (';#'.indexOf(c) !== -1) {
+        break
+      } else if (c === '\\') {
+        esc = true
+      } else {
+        unesc += c
+      }
+    }
+    if (esc) {
+      unesc += '\\'
+    }
 
-   if (options.allowDuplicateSections) {
-      return simplePropertyAppender;
-   }
-
-   return sectionCollapsePropertyAppender;
-
+    return unesc.trim()
+  }
+  return val
 }
 
 module.exports = {
-
-   defaultOptions: defaultOptions,
-
-   propertyAppender: propertyAppender,
-
-};
-
-
-
-/***/ }),
-
-/***/ 1235:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-const fs = __nccwpck_require__(7147);
-
-const defaultOptions = {
-   saveSections: true,
-};
-
-function flat (props) {
-   const out = [];
-   props.each((key, value) => out.push(`${key}=${value}`));
-   return out;
+  parse: decode,
+  decode,
+  stringify: encode,
+  encode,
+  safe,
+  unsafe,
 }
-
-function section (props) {
-   var lines = [];
-   var section = null;
-   props.each(function (key, value) {
-      var tokens = key.split('.');
-      if (tokens.length > 1) {
-         if (section !== tokens[0]) {
-            section = tokens[0];
-            lines.push('[' + section + ']');
-         }
-         key = tokens.slice(1).join('.');
-      }
-      else {
-         section = null;
-      }
-
-      lines.push(key + '=' + value);
-   });
-   return lines;
-}
-
-module.exports.L = function propertyWriter (userOptions) {
-   const options = Object.assign({}, defaultOptions, userOptions || {});
-
-   return (props, destFile, onComplete) => {
-      const onDone = new Promise((done, fail) => {
-         const content = (options.saveSections ? section(props) : flat(props)).join('\n');
-         fs.writeFile(destFile, content, (err) => {
-            if (err) {
-               return fail(err);
-            }
-
-            done(content);
-         });
-      });
-
-      if (typeof onComplete === 'function') {
-         if (onComplete.length > 1) {
-            onDone.then(() => onComplete(null), (e) => onComplete(e));
-         }
-         else {
-            onDone.then(onComplete)
-         }
-      }
-
-      return onDone;
-   }
-};
 
 
 /***/ }),
@@ -12522,7 +11944,6 @@ const core = __nccwpck_require__(3722);
 const { default: axios } = __nccwpck_require__(1343);
 const https = __nccwpck_require__(5687);
 const parseString = (__nccwpck_require__(8871).parseString);
-const propertiesReader = __nccwpck_require__(8756);
 
 function isGameVersionTarget({gameVersion}, targetGameVersion){
     return gameVersion == targetGameVersion;
@@ -12569,19 +11990,16 @@ const main = async () => {
         core.info(`loader_version: ${gradleConfigModel.loader_version}`)
         core.info(`fabric_version: ${gradleConfigModel.fabric_version}`)
 
-
-    
         const propertyPath = 'gradle.properties';
-    
-        let properties = propertiesReader(propertyPath);
-        
-        
-        for (var [key, value] of Object.entries(properties)) {
-            properties.set(key, value);
-        }
-    
-        const props = propertiesReader(propertyPath, {writer: { saveSections: false }});
-        await props.save(propertyPath);
+
+        var fs = __nccwpck_require__(7147), ini = __nccwpck_require__(16)
+        var config = ini.parse(fs.readFileSync(propertyPath, 'utf-8'))
+
+        config.minecraft_version = gradleConfigModel.minecraft_version;
+        config.yarn_mappings = gradleConfigModel.yarn_mappings;
+        config.loader_version = gradleConfigModel.loader_version;
+        config.fabric_version = gradleConfigModel.fabric_version;
+        fs.writeFileSync('gradle.properties', ini.stringify(config))
       });
 
 

@@ -2,7 +2,6 @@ const core = require('@actions/core');
 const { default: axios } = require('axios');
 const https = require('https');
 const parseString = require('xml2js').parseString;
-const propertiesReader = require('properties-reader');
 
 function isGameVersionTarget({gameVersion}, targetGameVersion){
     return gameVersion == targetGameVersion;
@@ -49,19 +48,16 @@ const main = async () => {
         core.info(`loader_version: ${gradleConfigModel.loader_version}`)
         core.info(`fabric_version: ${gradleConfigModel.fabric_version}`)
 
-
-    
         const propertyPath = 'gradle.properties';
-    
-        let properties = propertiesReader(propertyPath);
-        
-        
-        for (var [key, value] of Object.entries(properties)) {
-            properties.set(key, value);
-        }
-    
-        const props = propertiesReader(propertyPath, {writer: { saveSections: false }});
-        await props.save(propertyPath);
+
+        var fs = require('fs'), ini = require('ini')
+        var config = ini.parse(fs.readFileSync(propertyPath, 'utf-8'))
+
+        config.minecraft_version = gradleConfigModel.minecraft_version;
+        config.yarn_mappings = gradleConfigModel.yarn_mappings;
+        config.loader_version = gradleConfigModel.loader_version;
+        config.fabric_version = gradleConfigModel.fabric_version;
+        fs.writeFileSync('gradle.properties', ini.stringify(config))
       });
 
 
