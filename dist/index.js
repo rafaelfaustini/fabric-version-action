@@ -11866,7 +11866,7 @@ class FabricService {
     static getFabricData() {
         return __awaiter(this, void 0, void 0, function* () {
             const parseString = (__nccwpck_require__(6189).parseString);
-            const xml = yield axios.get("https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml");
+            const xml = yield axios.get("https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml").data;
             return new Promise((resolve, reject) => {
                 parseString(xml, (err, result) => {
                     if (err) {

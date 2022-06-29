@@ -9,7 +9,7 @@ export class FabricService {
     }
     public static async getFabricData(){
         const parseString = require('xml2js').parseString;
-        const xml = await axios.get("https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml");
+        const xml = await axios.get("https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml").data;
         return new Promise((resolve, reject) => {
             parseString(xml, (err, result) => {
                 if (err) {
